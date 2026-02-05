@@ -45,6 +45,81 @@
       <p>&copy; 2023 Mergington High School</p>
     </footer>
 
-    <script src="app.js"></script>
+    <script>
+      // Template for activity cards with participants section
+      const activityCardTemplate = (name, details) => `
+        <div class="activity-card">
+          <h4>${name}</h4>
+          <p><strong>Description:</strong> ${details.description}</p>
+          <p><strong>Schedule:</strong> ${details.schedule}</p>
+          <p><strong>Capacity:</strong> ${details.participants.length}/${details.max_participants}</p>
+          <div class="participants">
+            <h5>Participants:</h5>
+            <ul>
+              ${details.participants.length > 0 
+                ? details.participants.map(p => `<li>${p}</li>`).join('') 
+                : '<li style="color: #999; font-style: italic;">No participants yet</li>'}
+            </ul>
+          </div>
+        </div>
+      `;
+
+      // Load activities on page load
+      async function loadActivities() {
+        try {
+          const response = await fetch('/activities');
+          const activities = await response.json();
+          
+          const activitiesList = document.getElementById('activities-list');
+          const activitySelect = document.getElementById('activity');
+          
+          activitiesList.innerHTML = '';
+          
+          Object.entries(activities).forEach(([name, details]) => {
+            activitiesList.innerHTML += activityCardTemplate(name, details);
+            
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            activitySelect.appendChild(option);
+          });
+        } catch (error) {
+          document.getElementById('activities-list').innerHTML = '<p>Error loading activities</p>';
+          console.error('Error:', error);
+        }
+      }
+
+      // Handle form submission
+      document.getElementById('signup-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const activity = document.getElementById('activity').value;
+        const messageDiv = document.getElementById('message');
+        
+        try {
+          const response = await fetch(`/activities/${activity}/signup?email=${email}`, {
+            method: 'POST'
+          });
+          
+          if (response.ok) {
+            messageDiv.className = 'message success';
+            messageDiv.textContent = `Successfully signed up for ${activity}!`;
+            document.getElementById('signup-form').reset();
+            loadActivities();
+          } else {
+            const error = await response.json();
+            messageDiv.className = 'message error';
+            messageDiv.textContent = error.detail;
+          }
+        } catch (error) {
+          messageDiv.className = 'message error';
+          messageDiv.textContent = 'An error occurred. Please try again.';
+          console.error('Error:', error);
+        }
+      });
+
+      loadActivities();
+    </script>
   </body>
 </html>
